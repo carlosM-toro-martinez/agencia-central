@@ -9,35 +9,18 @@ const Producto = require("../models/Producto");
 const { Cliente, MovimientoInventario, Trabajador } = require("../models");
 const { DateTime } = require("luxon");
 const { Op } = require("sequelize");
-const Garantia = require("../models/Garantia");
 
 class servicesVenta {
   constructor() {
     this.sesion = {};
   }
 
-  async registrarVentaYActualizar(
-    dataVenta,
-    id_caja,
-    denominaciones,
-    descripcion,
-    monto
-  ) {
+  async registrarVentaYActualizar(dataVenta, id_caja, denominaciones) {
+    console.log(dataVenta);
     const transaction = await Venta.sequelize.transaction();
 
     try {
       const newVenta = await Venta.create(dataVenta, { transaction });
-      if (descripcion || monto) {
-        await Garantia.create(
-          {
-            id_cliente: newVenta.id_cliente,
-            id_venta: newVenta.id_venta,
-            descripcion,
-            monto: monto ? parseFloat(monto) : 0,
-          },
-          { transaction }
-        );
-      }
 
       const caja = await Caja.findByPk(id_caja);
       if (!caja) {
@@ -152,6 +135,8 @@ class servicesVenta {
 
         const nuevoPeso = inventario.peso - (detalle.peso || 0);
         inventario.peso = nuevoPeso;
+        console.log(nuevaCantidadUnidad);
+        console.log(nuevaCantidadInventario);
 
         await inventario.update(
           {
@@ -338,105 +323,158 @@ class servicesVenta {
           peso,
         } = detalle;
 
-        const detalleVenta = await DetalleVenta.findByPk(id_detalle, {
-          transaction,
-        });
-        if (!detalleVenta) {
-          throw new Error(
-            `No se encontró el DetalleVenta con el ID ${id_detalle}.`
-          );
-        }
-        await detalleVenta.destroy({ transaction });
-
-        const inventario = await Inventario.findOne({
-          where: {
-            id_producto: id_producto,
-            id_lote: id_lote,
-          },
-          transaction,
-        });
-        if (!inventario) {
-          throw new Error(
-            `No se encontró inventario para el producto y lote especificado (ID Producto: ${id_producto}, ID Lote: ${id_lote}).`
-          );
-        }
-
-        inventario.subCantidad += cantidad_unidad || 0;
-        inventario.cantidad += cantidad || 0;
-        inventario.peso += peso || 0;
-
-        await inventario.update(
-          {
-            cantidad: inventario.cantidad,
-            subCantidad: inventario.subCantidad,
-            peso: inventario.peso,
-          },
-          { transaction }
-        );
-
-        if (!productoModificaciones[id_producto]) {
-          const producto = await Producto.findByPk(id_producto, {
+        try {
+          const detalleVenta = await DetalleVenta.findByPk(id_detalle, {
             transaction,
           });
-          if (!producto) {
-            throw new Error(
-              `Producto no encontrado (ID Producto: ${id_producto}).`
+          if (detalleVenta) {
+            await detalleVenta.destroy({ transaction });
+          } else {
+            console.warn(
+              `No se encontró el DetalleVenta con el ID ${id_detalle}.`
             );
           }
-          productoModificaciones[id_producto] = {
-            producto,
-            stock: producto.stock,
-            subCantidad: producto.subCantidad,
-            peso: producto.peso,
-          };
-        }
 
-        productoModificaciones[id_producto].stock += cantidad || 0;
-        productoModificaciones[id_producto].subCantidad += cantidad_unidad || 0;
-        productoModificaciones[id_producto].peso += peso || 0;
+          const inventario = await Inventario.findOne({
+            where: {
+              id_producto: id_producto,
+              id_lote: id_lote,
+            },
+            transaction,
+          });
+          if (inventario) {
+            inventario.subCantidad += cantidad_unidad || 0;
+            inventario.cantidad += cantidad || 0;
+            inventario.peso += peso || 0;
+
+            await inventario.update(
+              {
+                cantidad: inventario.cantidad,
+                subCantidad: inventario.subCantidad,
+                peso: inventario.peso,
+              },
+              { transaction }
+            );
+          } else {
+            console.warn(
+              `No se encontró inventario para el producto y lote especificado (ID Producto: ${id_producto}, ID Lote: ${id_lote}).`
+            );
+          }
+
+          if (!productoModificaciones[id_producto]) {
+            const producto = await Producto.findByPk(id_producto, {
+              transaction,
+            });
+            if (producto) {
+              productoModificaciones[id_producto] = {
+                producto,
+                stock: producto.stock,
+                subCantidad: producto.subCantidad,
+                peso: producto.peso,
+              };
+            } else {
+              console.warn(
+                `Producto no encontrado (ID Producto: ${id_producto}).`
+              );
+            }
+          }
+
+          if (productoModificaciones[id_producto]) {
+            productoModificaciones[id_producto].stock += cantidad || 0;
+            productoModificaciones[id_producto].subCantidad +=
+              cantidad_unidad || 0;
+            productoModificaciones[id_producto].peso += peso || 0;
+          }
+        } catch (error) {
+          console.error(
+            `Error al procesar el detalle con ID ${id_detalle}: ${error.message}`
+          );
+        }
       }
 
       for (const mod of Object.values(productoModificaciones)) {
-        await mod.producto.update(
-          {
-            stock: mod.stock,
-            subCantidad: mod.subCantidad,
-            peso: mod.peso,
-          },
-          { transaction }
-        );
-      }
-
-      const cliente = await Cliente.findByPk(ventaDetalles[0].clienteId, {
-        transaction,
-      });
-
-      if (cliente) {
-        const nuevosPuntos = cliente.puntos_fidelidad - 1;
-        if (nuevosPuntos < 0) {
-          throw new Error(
-            `El cliente (ID Cliente: ${cliente.id}) no puede tener puntos de fidelidad negativos.`
+        try {
+          await mod.producto.update(
+            {
+              stock: mod.stock,
+              subCantidad: mod.subCantidad,
+              peso: mod.peso,
+            },
+            { transaction }
+          );
+        } catch (error) {
+          console.error(
+            `Error al actualizar el producto con ID ${mod.producto.id}: ${error.message}`
           );
         }
-        await cliente.update(
-          { puntos_fidelidad: nuevosPuntos },
-          { transaction }
-        );
+      }
+
+      try {
+        const cliente = await Cliente.findByPk(ventaDetalles[0].clienteId, {
+          transaction,
+        });
+
+        if (cliente) {
+          const nuevosPuntos = cliente.puntos_fidelidad - 1;
+          if (nuevosPuntos >= 0) {
+            await cliente.update(
+              { puntos_fidelidad: nuevosPuntos },
+              { transaction }
+            );
+          } else {
+            console.warn(
+              `El cliente (ID Cliente: ${cliente.id}) no puede tener puntos de fidelidad negativos.`
+            );
+          }
+        } else {
+          console.warn(
+            `No se encontró el cliente con ID ${ventaDetalles[0].clienteId}.`
+          );
+        }
+      } catch (error) {
+        console.error(`Error al actualizar el cliente: ${error.message}`);
       }
 
       await transaction.commit();
 
-      const venta = await Venta.findByPk(ventaDetalles[0].id_venta);
-      if (!venta) {
-        throw new Error(`Venta with ID ${id_venta} not found`);
+      try {
+        const venta = await Venta.findByPk(ventaDetalles[0].id_venta);
+
+        if (venta) {
+          const caja = await Caja.findByPk(ventaDetalles[0].id_caja);
+          if (!caja) {
+            throw new Error(`Caja con ID ${id_caja} no encontrada`);
+          }
+          const montoVenta = parseFloat(venta?.dataValues?.total);
+          const nuevoMontoCaja = parseFloat(caja.monto_final) - montoVenta;
+
+          await caja.update({ monto_final: nuevoMontoCaja });
+
+          const nuevoMovimientoCaja = await MovimientoCaja.create({
+            id_caja: ventaDetalles[0].id_caja,
+            tipo_movimiento: "Salida",
+            motivo: "Venta anulada",
+            monto: montoVenta,
+            fecha_movimiento: ventaDetalles[0].fecha_venta,
+            id_trabajador: ventaDetalles[0].id_trabajador,
+          });
+          await venta.destroy();
+        } else {
+          console.warn(
+            `Venta con ID ${ventaDetalles[0].id_venta} no encontrada.`
+          );
+        }
+      } catch (error) {
+        console.error(`Error al eliminar la venta: ${error.message}`);
       }
-      await venta.destroy();
+
       return {
         message: "La venta fue anulada exitosamente.",
       };
     } catch (error) {
       await transaction.rollback();
-      throw error;
+      console.error(`Error general: ${error.message}`);
+      throw new Error("Ocurrió un error al anular la venta.");
     }
   }
 
