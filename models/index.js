@@ -23,6 +23,18 @@ const Categoria = require("./Categoria");
 const MetodoVenta = require("./MetodoVenta");
 const Garantia = require("./Garantia");
 
+// Asociación DetalleVenta -> Lote
+DetalleVenta.belongsTo(Lote, {
+  foreignKey: "id_lote",
+  as: "lote",
+});
+
+// Asociación Lote -> DetalleVenta
+Lote.hasMany(DetalleVenta, {
+  foreignKey: "id_lote",
+  as: "detallesVenta",
+});
+
 // Relación Garantia con Cliente
 Cliente.hasMany(Garantia, {
   foreignKey: "id_cliente",

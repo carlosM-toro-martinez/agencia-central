@@ -198,6 +198,16 @@ class servicesReporte {
                 as: "producto",
                 attributes: ["nombre"],
               },
+              {
+                model: Lote,
+                as: "lote",
+                include: [
+                  {
+                    model: DetalleCompra,
+                    as: "detalleCompra",
+                  },
+                ],
+              },
             ],
           },
         ],
