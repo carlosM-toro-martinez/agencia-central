@@ -16,7 +16,9 @@ MetodoVenta.init(
     },
     cantidad_por_metodo: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+    },
+    peso_por_metodo: {
+      type: DataTypes.INTEGER,
     },
     precio: DataTypes.DECIMAL(10, 2),
     id_producto: {

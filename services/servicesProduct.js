@@ -4,6 +4,7 @@ const Lote = require("../models/Lote");
 const MovimientoInventarioService = require("./servicesMovimientoInventario");
 const InventarioService = require("./servicesInventario");
 const sequelize = require("../libs/dbConexionORM");
+const { DetalleCompra } = require("../models");
 
 const movimientoInventarioService = new MovimientoInventarioService();
 const inventarioService = new InventarioService();
@@ -157,6 +158,12 @@ class servicesProducto {
                 model: Lote,
                 as: "lote",
                 attributes: ["fecha_caducidad", "fecha_ingreso", "numero_lote"],
+                include: [
+                  {
+                    model: DetalleCompra,
+                    as: "detalleCompra",
+                  },
+                ],
               },
             ],
           },
@@ -166,7 +173,6 @@ class servicesProducto {
       if (!product) {
         throw new Error(`Product with ID ${id} not found`);
       }
-
       const inventarios = product.inventarios.map((inventario) => ({
         id: inventario.id,
         cantidad: inventario.cantidad,
@@ -177,6 +183,8 @@ class servicesProducto {
           : null,
         fecha_ingreso: inventario.lote ? inventario.lote.fecha_ingreso : null,
         numero_lote: inventario.lote ? inventario.lote.numero_lote : null,
+        detalleCompra: inventario.lote ? inventario.lote.detalleCompra : null,
+      
       }));
 
       return {

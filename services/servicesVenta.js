@@ -16,10 +16,22 @@ class servicesVenta {
   }
 
   async registrarVentaYActualizar(dataVenta, id_caja, denominaciones) {
-    console.log(dataVenta);
+    console.log(dataVenta.metodo_pago);
     const transaction = await Venta.sequelize.transaction();
 
     try {
+
+      if (dataVenta.metodo_pago !== "Contado") {
+        dataVenta.total = 0;
+        const newVenta = await Venta.create(dataVenta, { transaction });
+  
+        await transaction.commit();
+        return {
+          message: "Venta registrada con método de pago no contado.",
+          newVenta,
+        };
+      }
+
       const newVenta = await Venta.create(dataVenta, { transaction });
 
       const caja = await Caja.findByPk(id_caja);
