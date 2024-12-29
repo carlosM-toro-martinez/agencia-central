@@ -40,13 +40,11 @@ route.get("/:id_venta", async (req, res) => {
 
 route.post("/registrar-venta", async (req, res) => {
   try {
-    const { ventaData, id_caja, denominaciones, descripcion, monto } = req.body;
+    const { ventaData, id_caja, denominaciones } = req.body;
     const resultado = await ventaService.registrarVentaYActualizar(
       ventaData,
       id_caja,
-      denominaciones,
-      descripcion,
-      monto
+      denominaciones
     );
 
     res.status(201).json(resultado);

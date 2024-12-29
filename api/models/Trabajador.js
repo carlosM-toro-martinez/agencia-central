@@ -40,6 +40,10 @@ Trabajador.init(
     password: {
       type: DataTypes.STRING(255),
     },
+    estado: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true,
+    },
   },
   {
     sequelize,

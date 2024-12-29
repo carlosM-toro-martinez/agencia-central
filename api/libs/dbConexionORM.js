@@ -11,13 +11,13 @@ const sequelize = new Sequelize(
     dialect: "postgres",
     port: config.dbPort,
 
-    // dialectOptions: {
-    //   connectTimeout: 10000,
-    //   ssl: {
-    //     require: true,
-    //     rejectUnauthorized: false,
-    //   },
-    // },
+    dialectOptions: {
+      connectTimeout: 10000,
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
   }
 );
 

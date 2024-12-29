@@ -13,13 +13,20 @@ class servicesTrabajador {
   // Método GET para obtener todos los trabajadores
   async getAllTrabajadores() {
     try {
-      const trabajadores = await Trabajador.findAll();
+      const trabajadores = await Trabajador.findAll({
+        include: {
+          model: Rol,
+          as: "rol",
+          attributes: ["id_rol", "nombre"],
+        },
+      });
       return trabajadores;
     } catch (error) {
       console.error("Error fetching all trabajadores:", error);
       throw error;
     }
   }
+  
 
   // Método GET para obtener un trabajador por id_trabajador
   async getTrabajador(id_trabajador) {

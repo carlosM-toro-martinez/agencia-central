@@ -54,6 +54,7 @@ class servicesInventario {
                         "id_metodo_venta",
                         "descripcion",
                         "cantidad_por_metodo",
+                        "peso_por_metodo",
                         "precio",
                       ],
                     },
