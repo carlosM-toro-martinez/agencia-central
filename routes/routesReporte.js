@@ -7,7 +7,6 @@ const reporteService = new ReporteService();
 
 route.get("/almacenes/movimientos/:idInicio/:idFin", async (req, res) => {
   const { idInicio, idFin } = req.params;
-  console.log(idInicio, idFin);
 
   try {
     const movimientos = await reporteService.getLotesConDetalleCompra(
@@ -48,7 +47,7 @@ route.get("/caja/:idInicio/:idFin", async (req, res) => {
 
 route.get("/ventas/cliente/:id_cliente", async (req, res) => {
   const { id_cliente } = req.params;
-  
+
   try {
     const ventas = await reporteService.getVentasPorCliente(id_cliente);
     res.json(ventas);
@@ -71,7 +70,6 @@ route.get("/ventas/:idInicio/:idFin", async (req, res) => {
 });
 
 route.get("/ventas/clientes", async (req, res) => {
-
   try {
     const ventas = await reporteService.getVentasClientes();
     res.json(ventas);
@@ -80,7 +78,6 @@ route.get("/ventas/clientes", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 route.get("/ventas/clientes_por_puntos", async (req, res) => {
   try {
@@ -106,7 +103,9 @@ route.get("/cliente/:id_cliente/total", async (req, res) => {
   const { id_cliente } = req.params;
 
   try {
-    const totalGastado = await reporteService.getTotalGastadoPorCliente(id_cliente);
+    const totalGastado = await reporteService.getTotalGastadoPorCliente(
+      id_cliente
+    );
     res.json({ totalGastado });
   } catch (error) {
     console.error("Error fetching total gastado for cliente:", error);
@@ -114,8 +113,27 @@ route.get("/cliente/:id_cliente/total", async (req, res) => {
   }
 });
 
+route.get("/producto/:id_producto/historial", async (req, res) => {
+  const { id_producto } = req.params;
 
+  try {
+    const historial = await reporteService.obtenerHistorialProducto(
+      id_producto
+    );
+    res.json({ historial });
+  } catch (error) {
+    console.error("Error al obtener el historial del producto:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
 
-
-
+route.get("/mas-vendidos", async (req, res) => {
+  try {
+    const productos = await reporteService.obtenerProductosMasVendidos();
+    res.json({ productos });
+  } catch (error) {
+    console.error("Error al obtener productos más vendidos:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
 module.exports = route;

@@ -1,4 +1,10 @@
-const { Producto, Lote, MetodoVenta } = require("../models");
+const {
+  Producto,
+  Lote,
+  MetodoVenta,
+  Proveedor,
+  DetalleCompra,
+} = require("../models");
 const Inventario = require("../models/Inventario");
 
 class servicesInventario {
@@ -9,7 +15,6 @@ class servicesInventario {
   async getAllProductosConInventarios() {
     try {
       const productos = await Producto.findAll({
-        attributes: ["id_producto", "nombre", "codigo_barra"],
         include: [
           {
             model: Inventario,
@@ -34,6 +39,7 @@ class servicesInventario {
                   "subCantidad",
                   "peso",
                   "cantidadPorCaja",
+                  "precioVenta",
                 ],
                 include: [
                   {
@@ -47,32 +53,43 @@ class servicesInventario {
                       "peso",
                       "subCantidad",
                     ],
+                    include: [
+                      {
+                        model: MetodoVenta,
+                        as: "metodosVenta",
+                        attributes: [
+                          "id_metodo_venta",
+                          "descripcion",
+                          "cantidad_por_metodo",
+                          "peso_por_metodo",
+                          "precio",
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    model: DetalleCompra,
+                    as: "detalleCompra",
                     include: {
-                      model: MetodoVenta,
-                      as: "metodosVenta",
-                      attributes: [
-                        "id_metodo_venta",
-                        "descripcion",
-                        "cantidad_por_metodo",
-                        "peso_por_metodo",
-                        "precio",
-                      ],
+                      model: Proveedor,
+                      as: "proveedor",
                     },
                   },
                 ],
               },
             ],
           },
-          // {
-          //   model: MetodoVenta,
-          //   as: "metodosVenta",
-          //   attributes: [
-          //     "id_metodo_venta",
-          //     "descripcion",
-          //     "cantidad_por_metodo",
-          //     "precio",
-          //   ],
-          // },
+          {
+            model: MetodoVenta,
+            as: "metodosVenta",
+            attributes: [
+              "id_metodo_venta",
+              "descripcion",
+              "cantidad_por_metodo",
+              "peso_por_metodo",
+              "precio",
+            ],
+          },
         ],
         order: [["id_producto", "ASC"]],
       });

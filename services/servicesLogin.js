@@ -17,7 +17,7 @@ const generateToken = (user, tipo) => {
     id: user.id_trabajador || user.id_administrador,
     tipo,
   };
-  return jwt.sign(payload, jwtSecret, { expiresIn: "1h" });
+  return jwt.sign(payload, jwtSecret, { expiresIn: "8h" });
 };
 
 const loginUser = async (req, res) => {
@@ -71,6 +71,34 @@ const loginUser = async (req, res) => {
   }
 };
 
+const checkTokenStatus = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return { error: "No token provided" };
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return { error: "Malformed token header" };
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    const now = Math.floor(Date.now() / 1000);
+    const remainingSeconds = decoded.exp - now;
+
+    if (remainingSeconds > 0) {
+      return { remainingSeconds };
+    } else {
+      return { remainingSeconds };
+    }
+  } catch (err) {
+    return {
+      remainingSeconds: 0,
+    };
+  }
+};
+
 module.exports = {
   loginUser,
+  checkTokenStatus,
 };

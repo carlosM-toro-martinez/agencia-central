@@ -17,7 +17,6 @@ const DetalleVenta = require("./DetalleVenta");
 const MovimientoInventario = require("./MovimientoInventario");
 const Caja = require("./Caja");
 const MovimientoCaja = require("./MovimientoCaja");
-const DenominacionCaja = require("./DenominacionCaja");
 const Reporte = require("./Reporte");
 const Categoria = require("./Categoria");
 const MetodoVenta = require("./MetodoVenta");
@@ -170,16 +169,6 @@ Trabajador.hasMany(MovimientoCaja, {
   as: "movimientosRealizados",
 });
 
-// DenominacionCaja - Caja
-DenominacionCaja.belongsTo(Caja, {
-  foreignKey: "id_caja",
-  as: "cajaDenominacion",
-});
-Caja.hasMany(DenominacionCaja, {
-  foreignKey: "id_caja",
-  as: "denominaciones",
-});
-
 // Categoria - Producto (Uno a Muchos)
 Categoria.hasMany(Producto, {
   foreignKey: "id_categoria",
@@ -278,7 +267,6 @@ module.exports = {
   MovimientoInventario,
   Caja,
   MovimientoCaja,
-  DenominacionCaja,
   Reporte,
   Categoria,
   MetodoVenta,

@@ -12,6 +12,7 @@ const {
   Cliente,
   DetalleVenta,
   Caja,
+  Inventario,
 } = require("../models");
 
 class servicesReporte {
@@ -44,19 +45,26 @@ class servicesReporte {
           },
         ],
       });
-      const lotesAgrupados = lotes.reduce((agrupados, lote) => {
-        const { numero_lote } = lote;
-        if (!agrupados[numero_lote]) {
-          agrupados[numero_lote] = [];
-        }
-        agrupados[numero_lote].push(lote);
-        return agrupados;
-      }, {});
 
-      const resultado = Object.keys(lotesAgrupados).map((numeroLote) => ({
-        numero_lote: numeroLote,
-        lotes: lotesAgrupados[numeroLote].map((lote) => ({
+      // Agrupar lotes por id_proveedor
+      const lotesAgrupadosPorProveedor = lotes.reduce((agrupados, lote) => {
+        const proveedor = lote.detalleCompra?.proveedor;
+        if (!proveedor) return agrupados;
+
+        const idProveedor = proveedor.id_proveedor;
+        const nombreProveedor = proveedor.nombre;
+
+        if (!agrupados[idProveedor]) {
+          agrupados[idProveedor] = {
+            id_proveedor: idProveedor,
+            nombre: nombreProveedor,
+            lotes: [],
+          };
+        }
+
+        agrupados[idProveedor].lotes.push({
           id_lote: lote.id_lote,
+          numero_lote: lote.numero_lote,
           fecha_ingreso: lote.fecha_ingreso,
           fecha_caducidad: lote.fecha_caducidad,
           cantidad: lote.cantidad,
@@ -65,7 +73,6 @@ class servicesReporte {
           cantidadPorCaja: lote.cantidadPorCaja,
           detalleCompra: {
             id_detalle: lote.detalleCompra.id_detalle,
-            id_proveedor: lote.detalleCompra.id_proveedor,
             cantidad: lote.detalleCompra.cantidad,
             precio_unitario: lote.detalleCompra.precio_unitario,
             fecha_compra: lote.detalleCompra.fecha_compra,
@@ -74,20 +81,20 @@ class servicesReporte {
               nombre: lote.detalleCompra.producto.nombre,
               codigo_barra: lote.detalleCompra.producto.codigo_barra,
             },
-            proveedor: {
-              id_proveedor: lote.detalleCompra.proveedor.id_proveedor,
-              nombre: lote.detalleCompra.proveedor.nombre,
-            },
           },
-        })),
-      }));
+        });
+
+        return agrupados;
+      }, {});
+
+      // Convertir objeto agrupado en array y ordenar por nombre del proveedor
+      const resultado = Object.values(lotesAgrupadosPorProveedor).sort((a, b) =>
+        a.nombre.toLowerCase().localeCompare(b.nombre.toLowerCase())
+      );
 
       return resultado;
     } catch (error) {
-      console.error(
-        "Error fetching lotes agrupados por numero de lote:",
-        error
-      );
+      console.error("Error al agrupar lotes por proveedor:", error);
       throw error;
     }
   }
@@ -99,28 +106,25 @@ class servicesReporte {
         include: [
           {
             model: DetalleCompra,
-            as: "compras",
-            attributes: [
-              "id_detalle_compra",
-              "cantidad",
-              "precio",
-              "fecha_compra",
-            ],
+            as: "detallesCompra",
             include: [
               {
-                model: Producto,
-                as: "producto",
-                attributes: ["id_producto", "nombre"],
+                model: Lote,
+                as: "lotes",
                 include: [
                   {
-                    model: Lote,
-                    as: "lotes",
-                    attributes: [
-                      "id_lote",
-                      "numero_lote",
-                      "cantidad",
-                      "fecha_caducidad",
-                    ],
+                    model: Producto,
+                    as: "producto",
+                  },
+                  {
+                    model: Inventario,
+                    as: "inventarios",
+                    // where: {
+                    //   cantidad: {
+                    //     [Op.gt]: 0,
+                    //   },
+                    // },
+                    // required: false,
                   },
                 ],
               },
@@ -196,7 +200,6 @@ class servicesReporte {
               {
                 model: Producto,
                 as: "producto",
-                attributes: ["nombre"],
               },
               {
                 model: Lote,
@@ -223,32 +226,36 @@ class servicesReporte {
     try {
       const ventas = await Venta.findAll({
         attributes: [
-          'id_cliente',
-          [Sequelize.fn('SUM', Sequelize.col('total')), 'total_gastado'],
-          [Sequelize.col('cliente.id_cliente'), 'cliente.id_cliente'],
-          [Sequelize.col('cliente.nombre'), 'cliente.nombre'],
-          [Sequelize.col('cliente.apellido'), 'cliente.apellido']
+          "id_cliente",
+          [Sequelize.fn("SUM", Sequelize.col("total")), "total_gastado"],
+          [Sequelize.col("cliente.id_cliente"), "cliente.id_cliente"],
+          [Sequelize.col("cliente.nombre"), "cliente.nombre"],
+          [Sequelize.col("cliente.apellido"), "cliente.apellido"],
         ],
         include: [
           {
             model: Cliente,
-            as: 'cliente',
-            attributes: ['id_cliente', 'nombre', 'apellido', 'puntos_fidelidad', 'codigo' ],
-
-          }
+            as: "cliente",
+            attributes: [
+              "id_cliente",
+              "nombre",
+              "apellido",
+              "puntos_fidelidad",
+              "codigo",
+            ],
+          },
         ],
         group: [
-          'Venta.id_cliente',
-          'cliente.id_cliente',
-          'cliente.nombre',
-          'cliente.apellido',
-          'cliente.puntos_fidelidad',
-          'cliente.codigo',
-
+          "Venta.id_cliente",
+          "cliente.id_cliente",
+          "cliente.nombre",
+          "cliente.apellido",
+          "cliente.puntos_fidelidad",
+          "cliente.codigo",
         ],
-        order: [[Sequelize.literal('total_gastado'), 'DESC']]
+        order: [[Sequelize.literal("total_gastado"), "DESC"]],
       });
-  
+
       return ventas.map((venta) => ({
         id_cliente: venta.id_cliente,
         nombre: venta.cliente.nombre,
@@ -267,16 +274,14 @@ class servicesReporte {
     try {
       const clientes = await Cliente.findAll({
         attributes: [
-          'id_cliente',
-          'nombre',
-          'apellido',
-          'puntos_fidelidad',
-          'codigo'
+          "id_cliente",
+          "nombre",
+          "apellido",
+          "puntos_fidelidad",
+          "codigo",
         ],
-        order: [
-          ['puntos_fidelidad', 'DESC']
-        ],
-        limit: 10
+        order: [["puntos_fidelidad", "DESC"]],
+        limit: 10,
       });
 
       return clientes.map((cliente) => ({
@@ -284,10 +289,13 @@ class servicesReporte {
         nombre: cliente.nombre,
         apellido: cliente.apellido,
         puntos_fidelidad: cliente.puntos_fidelidad,
-        codigo: cliente.codigo
+        codigo: cliente.codigo,
       }));
     } catch (error) {
-      console.error("Error fetching top clientes por puntos de fidelidad:", error);
+      console.error(
+        "Error fetching top clientes por puntos de fidelidad:",
+        error
+      );
       throw error;
     }
   }
@@ -375,28 +383,172 @@ class servicesReporte {
           {
             model: Cliente,
             as: "cliente",
-            attributes: [
-              "id_cliente",
-              "codigo",
-              "nombre",
-              "apellido"
-            ]
-          }
+            attributes: ["id_cliente", "codigo", "nombre", "apellido"],
+          },
         ],
         group: ["cliente.id_cliente"], // Agrupar por Cliente.id_cliente usando el alias 'cliente'
       });
-  
+
       return totalGastado ? totalGastado.get() : null; // Retornar el total gastado si existe
     } catch (error) {
       console.error("Error fetching total gastado for cliente:", error);
       throw error;
     }
   }
-  
-  
-  
-  
-  
+
+  async obtenerHistorialProducto(id_producto) {
+    const compras = await DetalleCompra.findAll({
+      where: { id_producto },
+      include: [
+        {
+          model: Trabajador,
+          as: "trabajadorCompra",
+          attributes: ["id_trabajador", "nombre"],
+        },
+        {
+          model: Proveedor,
+          as: "proveedor",
+          attributes: ["id_proveedor", "nombre"],
+        },
+      ],
+    });
+
+    const ventas = await DetalleVenta.findAll({
+      where: { id_producto },
+      include: [
+        {
+          model: Venta,
+          as: "venta",
+          attributes: ["id_venta", "fecha_venta"],
+          include: [
+            {
+              model: Trabajador,
+              as: "trabajadorVenta",
+              attributes: ["id_trabajador", "nombre"],
+            },
+            {
+              model: Cliente,
+              as: "cliente",
+              attributes: ["id_cliente", "nombre"],
+            },
+          ],
+        },
+      ],
+    });
+
+    const movimientos = await MovimientoInventario.findAll({
+      where: {
+        id_producto,
+        tipo_movimiento: "Salida sin venta",
+      },
+      include: [
+        {
+          model: Trabajador,
+          as: "trabajadorMovimientoInventario",
+          attributes: ["id_trabajador", "nombre"],
+        },
+      ],
+    });
+
+    const historial = [];
+
+    for (const compra of compras) {
+      historial.push({
+        tipo: "compra",
+        fecha: compra.fecha_compra,
+        trabajador: compra.trabajadorCompra,
+        proveedor: compra.proveedor,
+        detalle: {
+          cantidad: compra.cantidad,
+          subCantidad: compra.subCantidad,
+          peso: compra.peso,
+          precio_unitario: compra.precio_unitario,
+        },
+      });
+    }
+
+    for (const ventaDetalle of ventas) {
+      historial.push({
+        tipo: "venta",
+        fecha: ventaDetalle.venta?.fecha_venta,
+        trabajador: ventaDetalle.venta?.trabajadorVenta,
+        cliente: ventaDetalle.venta?.cliente,
+        detalle: {
+          cantidad: ventaDetalle.cantidad,
+          subCantidad: ventaDetalle.subCantidad,
+          peso: ventaDetalle.peso,
+          precio_unitario: ventaDetalle.precio_unitario,
+        },
+      });
+    }
+
+    for (const mov of movimientos) {
+      historial.push({
+        tipo: "movimiento",
+        fecha: mov.fecha_movimiento,
+        tipo_movimiento: mov.tipo_movimiento,
+        trabajador: mov.trabajadorMovimientoInventario,
+        detalle: {
+          cantidad: mov.cantidad,
+          subCantidad: mov.subCantidad,
+          peso: mov.peso,
+          lote: mov.lote,
+        },
+      });
+    }
+
+    historial.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+
+    return historial;
+  }
+
+  async obtenerProductosMasVendidos() {
+    const productos = await Producto.findAll({
+      include: [
+        {
+          model: DetalleVenta,
+          as: "detallesVenta",
+          attributes: [
+            "id_detalle",
+            "id_venta",
+            "cantidad",
+            "subCantidad",
+            "peso",
+            "precio_unitario",
+          ],
+        },
+      ],
+    });
+
+    const productosConVentas = productos
+      .map((producto) => {
+        const totalVendidas = producto.detallesVenta.reduce(
+          (acc, detalle) => acc + (detalle.cantidad || 0),
+          0
+        );
+
+        const totalUnidadesVendidas = producto.detallesVenta.reduce(
+          (acc, detalle) => acc + (detalle.subCantidad || 0),
+          0
+        );
+
+        return {
+          ...producto.toJSON(),
+          totalVendidas,
+          totalUnidadesVendidas,
+        };
+      })
+      .filter(
+        (producto) =>
+          producto.totalVendidas > 0 || producto.totalUnidadesVendidas > 0
+      );
+
+    productosConVentas.sort(
+      (a, b) => b.totalUnidadesVendidas - a.totalUnidadesVendidas
+    );
+
+    return productosConVentas;
+  }
 }
 
 module.exports = servicesReporte;

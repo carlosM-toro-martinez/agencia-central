@@ -26,7 +26,6 @@ class servicesTrabajador {
       throw error;
     }
   }
-  
 
   // Método GET para obtener un trabajador por id_trabajador
   async getTrabajador(id_trabajador) {
@@ -95,14 +94,20 @@ class servicesTrabajador {
   // Método DELETE para eliminar un trabajador por id_trabajador
   async deleteTrabajador(id_trabajador) {
     try {
+      // 1. Buscamos el trabajador por PK
       const trabajador = await Trabajador.findByPk(id_trabajador);
       if (!trabajador) {
         throw new Error(`Trabajador with ID ${id_trabajador} not found`);
       }
-      await trabajador.destroy();
-      return { message: "Trabajador deleted successfully" };
+
+      // 2. En lugar de eliminarlo, actualizamos solo el campo "estado"
+      await trabajador.update({ estado: false });
+
+      return {
+        message: "Trabajador desactivado (estado = false) correctamente",
+      };
     } catch (error) {
-      console.error("Error deleting trabajador:", error);
+      console.error("Error desactivando trabajador:", error);
       throw error;
     }
   }

@@ -1,14 +1,14 @@
 const Caja = require("../models/Caja");
-const DenominacionCaja = require("../models/DenominacionCaja");
 const MovimientoCaja = require("../models/MovimientoCaja");
 const sequelize = require("../libs/dbConexionORM");
+const { Trabajador } = require("../models");
 
 class servicesCaja {
   constructor() {
     this.sesion = {};
   }
 
-  async abrirCaja(monto_inicial, denominaciones, id_trabajador) {
+  async abrirCaja(monto_inicial, id_trabajador) {
     const t = await sequelize.transaction();
 
     try {
@@ -21,18 +21,6 @@ class servicesCaja {
         },
         { transaction: t }
       );
-
-      for (const denom of denominaciones) {
-        await DenominacionCaja.create(
-          {
-            id_caja: nuevaCaja.id_caja,
-            tipo_dinero: denom.tipo_dinero,
-            denominacion: denom.denominacion,
-            cantidad: denom.cantidad,
-          },
-          { transaction: t }
-        );
-      }
 
       await MovimientoCaja.create(
         {
@@ -86,16 +74,26 @@ class servicesCaja {
     }
   }
 
-  async getLastCajaDenominacion() {
+  async getLastCaja() {
     try {
       const lastCaja = await Caja.findOne({
         order: [["id_caja", "DESC"]],
-        include: {
-          model: DenominacionCaja,
-          as: "denominaciones",
-          attributes: ["denominacion", "cantidad", "tipo_dinero"],
-          required: true,
-        },
+        include: [
+          {
+            model: MovimientoCaja,
+            as: "movimientos",
+            include: [
+              {
+                model: Trabajador,
+                as: "trabajadorMovimiento",
+              },
+            ],
+          },
+          {
+            model: Trabajador,
+            as: "trabajadorCierre",
+          },
+        ],
       });
 
       if (!lastCaja) {
@@ -106,19 +104,6 @@ class servicesCaja {
             fecha_apertura: "2024-09-26T10:00:00.000Z",
             fecha_cierre: "2024-09-26T10:00:00.000Z",
           },
-          denominaciones: [
-            { tipo_dinero: "billete", denominacion: 200, cantidad: 0 },
-            { tipo_dinero: "billete", denominacion: 100, cantidad: 0 },
-            { tipo_dinero: "billete", denominacion: 50, cantidad: 0 },
-            { tipo_dinero: "billete", denominacion: 20, cantidad: 0 },
-            { tipo_dinero: "billete", denominacion: 10, cantidad: 0 },
-            { tipo_dinero: "moneda", denominacion: 5, cantidad: 0 },
-            { tipo_dinero: "moneda", denominacion: 2, cantidad: 0 },
-            { tipo_dinero: "moneda", denominacion: 1, cantidad: 0 },
-            { tipo_dinero: "moneda", denominacion: 0.5, cantidad: 0 },
-            { tipo_dinero: "moneda", denominacion: 0.2, cantidad: 0 },
-            { tipo_dinero: "moneda", denominacion: 0.1, cantidad: 0 },
-          ],
         };
       }
 
@@ -130,18 +115,41 @@ class servicesCaja {
           fecha_apertura: lastCaja.fecha_apertura,
           fecha_cierre: lastCaja.fecha_cierre,
           id_trabajador: lastCaja.id_trabajador,
+          movimientos: lastCaja.movimientos,
+          trabajadorCierre: lastCaja.trabajadorCierre,
         },
-        denominaciones: lastCaja.denominaciones,
       };
     } catch (error) {
-      console.error("Error fetching last caja denominacion:", error);
+      console.error("Error fetching last caja:", error);
       throw error;
     }
   }
 
   async getAllCajas() {
     try {
-      const cajas = await Caja.findAll();
+      const cajas = await Caja.findAll({
+        order: [["id_caja", "DESC"]],
+        include: [
+          {
+            model: MovimientoCaja,
+            as: "movimientos",
+            where: {
+              tipo_movimiento: "cierre",
+            },
+            required: false,
+            include: [
+              {
+                model: Trabajador,
+                as: "trabajadorMovimiento",
+              },
+            ],
+          },
+          {
+            model: Trabajador,
+            as: "trabajadorCierre",
+          },
+        ],
+      });
       return cajas;
     } catch (error) {
       console.error("Error fetching all cajas:", error);

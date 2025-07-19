@@ -36,7 +36,9 @@ Lote.init(
     cantidadPorCaja: {
       type: DataTypes.INTEGER,
     },
-
+    precioVenta: {
+      type: DataTypes.DECIMAL(10, 2),
+    },
     subCantidad: DataTypes.INTEGER,
     peso: DataTypes.DECIMAL(10, 2),
     id_detalle_compra: {

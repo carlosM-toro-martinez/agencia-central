@@ -71,14 +71,31 @@ route.put("/:id_detalle", async (req, res) => {
 });
 
 // Ruta DELETE para eliminar un detalle de compra por id_detalle
-route.delete("/:id_detalle", async (req, res) => {
+// route.delete("/:id_detalle", async (req, res) => {
+//   try {
+//     const { id_detalle } = req.params;
+//     const message = await detalleCompraService.deleteDetalleCompra(id_detalle);
+//     res.json(message);
+//   } catch (error) {
+//     console.error("Error deleting detalle de compra:", error);
+//     res.status(404).json({ error: error.message });
+//   }
+// });
+
+route.delete('/:id_detalle', async (req, res) => {
   try {
     const { id_detalle } = req.params;
-    const message = await detalleCompraService.deleteDetalleCompra(id_detalle);
-    res.json(message);
+    const detalle = req.body;
+
+    const result = await detalleCompraService.eliminarInventarioYActualizarProducto({
+      id_detalle,
+      ...detalle,
+    });
+
+    res.json(result);
   } catch (error) {
-    console.error("Error deleting detalle de compra:", error);
-    res.status(404).json({ error: error.message });
+    console.error('Error eliminando inventario y actualizando producto:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

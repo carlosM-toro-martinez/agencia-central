@@ -36,7 +36,6 @@ route.post("/", async (req, res) => {
       monto,
       id_trabajador,
       motivo,
-      denominacionesDetalles,
       fecha_movimiento,
     } = req.body;
 
@@ -46,8 +45,7 @@ route.post("/", async (req, res) => {
       !monto ||
       !id_trabajador ||
       !motivo ||
-      !fecha_movimiento ||
-      !denominacionesDetalles
+      !fecha_movimiento
     ) {
       return res.status(400).json({ error: "Todos los campos son requeridos" });
     }
@@ -58,8 +56,7 @@ route.post("/", async (req, res) => {
       monto,
       id_trabajador,
       motivo,
-      fecha_movimiento,
-      denominacionesDetalles
+      fecha_movimiento
     );
 
     res.status(201).json(movimiento);

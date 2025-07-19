@@ -1,6 +1,8 @@
 const Lote = require("../models/Lote");
 const Producto = require("../models/Producto");
 const MetodoVenta = require("../models/MetodoVenta");
+const Inventario = require("../models/Inventario");
+const { Op } = require("sequelize");
 
 class servicesLote {
   constructor() {
@@ -40,6 +42,65 @@ class servicesLote {
       return lotes;
     } catch (error) {
       console.error("Error fetching all lotes:", error);
+      throw error;
+    }
+  }
+
+  // Medodo Get para obtener los 20 proximos a vencer
+
+  async getTop20LotesPorVencer() {
+    try {
+      // 1) Obtenemos TODOS los lotes ordenados
+      const lotes = await Lote.findAll({
+        include: [
+          {
+            model: Producto,
+            as: "producto",
+            attributes: [
+              "nombre",
+              "codigo_barra",
+              "precio",
+              "stock",
+              "peso",
+              "subCantidad",
+            ],
+            include: [
+              {
+                model: Inventario,
+                as: "inventarios",
+                attributes: [
+                  "id_inventario",
+                  "id_producto",
+                  "id_lote",
+                  "cantidad",
+                  "subCantidad",
+                  "peso",
+                  "fecha_actualizacion",
+                  "id_trabajador",
+                ],
+              },
+            ],
+          },
+        ],
+        order: [["fecha_caducidad", "ASC"]],
+      });
+
+      // 2) Filtramos: por cada lote, buscamos el inventario que tenga el mismo id_lote
+      const lotesConStock = lotes.filter((lote) => {
+        // Buscamos en el array de inventarios del producto
+        const inventarioDelLote = lote.producto.inventarios.find(
+          (inv) => inv.id_lote === lote.id_lote
+        );
+        // Sólo mantenemos el lote si encontramos un inventario y su cantidad > 0
+        return inventarioDelLote && inventarioDelLote.cantidad > 0;
+      });
+
+      // 3) Si efectivamente quieres devolver sólo los “top 20” que quedan tras filtrar:
+      const top20 = lotesConStock.slice(0, 500);
+
+      return top20;
+    } catch (error) {
+      console.error("Error al obtener los 20 lotes por vencer:", error);
       throw error;
     }
   }

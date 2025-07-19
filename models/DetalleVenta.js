@@ -19,6 +19,7 @@ DetalleVenta.init(
         model: Venta,
         key: "id_venta",
       },
+      onDelete: "CASCADE",
     },
     id_producto: {
       type: DataTypes.INTEGER,

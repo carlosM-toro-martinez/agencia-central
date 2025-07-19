@@ -1,15 +1,15 @@
 services:
-  postgres:
+  postgresInventory:
     image: postgres:15
-    container_name: postgresMiniMarket
+    container_name: postgresInventory
     environment:
-      POSTGRES_USER: minimarket
-      POSTGRES_PASSWORD: minimarket.ps
-      POSTGRES_DB: mini_market_db
+      POSTGRES_USER: Inventory
+      POSTGRES_PASSWORD: Inventory.ps
+      POSTGRES_DB: Inventory_db
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
-      - postgres_data_new:/var/lib/postgresql/data
+      - postgresInventory:/var/lib/postgresql/dataInventory
 
 volumes:
-  postgres_data_new:
+  postgresInventory:

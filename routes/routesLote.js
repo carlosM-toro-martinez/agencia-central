@@ -15,6 +15,17 @@ route.get("/", async (req, res) => {
   }
 });
 
+// Ruta GET para obtener los 10 productos mas cerca de vencerse
+route.get("/proximos_vencidos", async (req, res) => {
+  try {
+    const lotes = await loteService.getTop20LotesPorVencer();
+    res.json(lotes);
+  } catch (error) {
+    console.error("Error fetching lotes:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Ruta GET para obtener un lote por id_lote
 route.get("/:id_lote", async (req, res) => {
   try {

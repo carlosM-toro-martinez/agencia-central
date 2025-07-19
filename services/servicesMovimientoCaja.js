@@ -1,20 +1,19 @@
 const MovimientoCaja = require("../models/MovimientoCaja");
 const Caja = require("../models/Caja");
-const DenominacionCaja = require("../models/DenominacionCaja");
 const sequelize = require("../libs/dbConexionORM");
 
 class servicesMovimientoCaja {
   constructor() {
     this.sesion = {};
   }
+
   async crearMovimientoCaja(
     id_caja,
     tipo_movimiento,
     monto,
     id_trabajador,
     motivo,
-    fecha_movimiento,
-    denominacionesDetalles
+    fecha_movimiento
   ) {
     const t = await sequelize.transaction();
 
@@ -35,33 +34,9 @@ class servicesMovimientoCaja {
       if (!caja) {
         throw new Error(`Caja with ID ${id_caja} not found`);
       }
+
       caja.monto_final = parseFloat(caja.monto_final) + parseFloat(monto);
-
       await caja.save({ transaction: t });
-
-      const denominaciones = await DenominacionCaja.findAll({
-        where: { id_caja },
-        transaction: t,
-      });
-      for (const detalle of denominacionesDetalles) {
-        const { tipo_dinero, denominacion, cantidad } = detalle;
-        const denominacionExistente = denominaciones.find(
-          (d) =>
-            d.tipo_dinero === tipo_dinero &&
-            parseFloat(d.denominacion) === parseFloat(denominacion)
-        );
-
-        if (!denominacionExistente) {
-          throw new Error(
-            `Denominación ${denominacion} ${tipo_dinero} no encontrada en la caja.`
-          );
-        }
-        denominacionExistente.cantidad = cantidad;
-        console.log(tipo_dinero, denominacion, cantidad);
-
-        console.log(denominacionExistente);
-        await denominacionExistente.save({ transaction: t });
-      }
 
       await t.commit();
       return movimiento;

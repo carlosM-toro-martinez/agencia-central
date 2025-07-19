@@ -15,7 +15,6 @@ const routesDetalleVenta = require("./routesDetalleVenta");
 const routesMovimientoInventario = require("./routesMovimientoInventario");
 const routesCaja = require("./routesCaja");
 const routesMovimientoCaja = require("./routesMovimientoCaja");
-const routesDenominacionCaja = require("./routesDenominacionCaja");
 const routesReporte = require("./routesReporte");
 const routesLogin = require("./routesLogin");
 const routesCategoria = require("./routesCategoria");
@@ -40,7 +39,6 @@ function router(app) {
   routes.use("/movimiento-inventario", routesMovimientoInventario);
   routes.use("/caja", routesCaja);
   routes.use("/movimiento-caja", routesMovimientoCaja);
-  routes.use("/denominacion-caja", routesDenominacionCaja);
   routes.use("/reportes", routesReporte);
   routes.use("/categorias", routesCategoria);
   routes.use("/metodo-ventas", routesMetodoVenta);

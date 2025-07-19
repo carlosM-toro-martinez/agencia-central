@@ -6,12 +6,8 @@ const cajaService = new CajaService();
 
 route.post("/abrir", async (req, res) => {
   try {
-    const { monto_inicial, denominaciones, id_trabajador } = req.body;
-    const nuevaCaja = await cajaService.abrirCaja(
-      monto_inicial,
-      denominaciones,
-      id_trabajador
-    );
+    const { monto_inicial, id_trabajador } = req.body;
+    const nuevaCaja = await cajaService.abrirCaja(monto_inicial, id_trabajador);
     res.status(201).json(nuevaCaja);
   } catch (error) {
     console.error("Error opening caja:", error);
@@ -32,7 +28,8 @@ route.post("/cerrar", async (req, res) => {
 
 route.get("/", async (req, res) => {
   try {
-    const cajas = await cajaService.getLastCajaDenominacion();
+    const cajas = await cajaService.getLastCaja();
+
     if (cajas.length === 0) {
       return res.json({});
     }

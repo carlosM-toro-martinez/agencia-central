@@ -38,27 +38,31 @@ route.get("/:id_venta", async (req, res) => {
   }
 });
 
-route.post("/registrar-venta", async (req, res) => {
+route.post("/venta-completa", async (req, res) => {
   try {
-    const { ventaData, id_caja, denominaciones } = req.body;
-    const resultado = await ventaService.registrarVentaYActualizar(
+    const { ventaData, detalles, id_caja } = req.body;
+    const venta = await ventaService.realizarVentaCompleta(
       ventaData,
-      id_caja,
-      denominaciones
+      detalles,
+      id_caja
     );
-
-    res.status(201).json(resultado);
+    res.status(201).json({ success: true, venta });
   } catch (error) {
-    console.error("Error registrando venta:", error);
-    res.status(500).json({ error: error.message });
+    console.error("Error al procesar venta completa:", error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 route.post("/movimiento-inventario", async (req, res) => {
   try {
-    const ventaDetalles = req.body;
+    const { ventaData, detalles, id_caja } = req.body;
+    console.log(req.body);
 
-    const resultado = await ventaService.procesarInventario(ventaDetalles);
+    const resultado = await ventaService.procesarInventario(
+      ventaData,
+      detalles,
+      id_caja
+    );
 
     res.status(201).json(resultado);
   } catch (error) {
@@ -80,30 +84,30 @@ route.post("/anular-venta", async (req, res) => {
   }
 });
 
-route.post("/procesar-venta", async (req, res) => {
-  try {
-    const ventaDetalles = req.body;
+// route.post("/procesar-venta", async (req, res) => {
+//   try {
+//     const ventaDetalles = req.body;
 
-    // Llamamos al servicio para procesar la venta
-    const resultado = await ventaService.procesarVenta(ventaDetalles);
+//     // Llamamos al servicio para procesar la venta
+//     const resultado = await ventaService.procesarVenta(ventaDetalles);
 
-    res.status(201).json(resultado);
-  } catch (error) {
-    console.error("Error procesando venta:", error);
-    res.status(500).json({ error: error.message });
-  }
-});
+//     res.status(201).json(resultado);
+//   } catch (error) {
+//     console.error("Error procesando venta:", error);
+//     res.status(500).json({ error: error.message });
+//   }
+// });
 
-// Ruta POST para crear una nueva venta
-route.post("/", async (req, res) => {
-  try {
-    const newVenta = await ventaService.createVenta(req.body);
-    res.status(201).json(newVenta);
-  } catch (error) {
-    console.error("Error creating venta:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+// // Ruta POST para crear una nueva venta
+// route.post("/", async (req, res) => {
+//   try {
+//     const newVenta = await ventaService.createVenta(req.body);
+//     res.status(201).json(newVenta);
+//   } catch (error) {
+//     console.error("Error creating venta:", error);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
 // Ruta PUT para actualizar una venta por id_venta
 route.put("/:id_venta", async (req, res) => {

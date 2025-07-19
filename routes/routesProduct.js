@@ -50,11 +50,22 @@ route.post("/", async (req, res) => {
   }
 });
 
+// Ruta POST para crear un nuevo producto
+route.post("/buy", async (req, res) => {
+  try {
+    const newProduct =
+      await productService.createDetalleCompraYLoteAndUpdateProduct(req.body);
+
+    res.status(201).json(newProduct);
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 // Ruta PUT para actualizar un producto por ID
 route.put("/:id", async (req, res) => {
   try {
-    console.log(req.body);
-
     const updatedProduct = await productService.updateProduct(
       req.params.id,
       req.body
