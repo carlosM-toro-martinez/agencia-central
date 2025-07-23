@@ -58,6 +58,7 @@ class servicesVenta {
 
   async grabarDetallesYAjustarInventario(id_venta, detalles, transaction) {
     const mods = {};
+    console.log(detalles);
 
     for (const det of detalles) {
       const {
@@ -69,6 +70,7 @@ class servicesVenta {
         detalle,
         precio,
         clienteId,
+        cantidadMetod,
       } = det;
 
       await DetalleVenta.create(
@@ -81,6 +83,7 @@ class servicesVenta {
           peso,
           detalle,
           precio_unitario: precio,
+          cantidadMetod,
         },
         { transaction }
       );
